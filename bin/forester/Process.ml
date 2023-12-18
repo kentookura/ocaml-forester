@@ -3,7 +3,7 @@ open Core
 
 module S = Algaeff.Sequencer.Make (struct type t = Code.tree end)
 
-(* I would like to convert this code to use Eio's path primitives, but I don't see how to get around the need for 'realpath', etc. *)
+(* [TODO] I would like to convert this code to use Eio's path primitives, but I don't see how to get around the need for 'realpath', etc. *)
 
 let rec process_file ~dev filename =
   if Filename.extension filename = ".tree" then

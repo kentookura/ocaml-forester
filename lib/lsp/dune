@@ -1,0 +1,4 @@
+(library
+ (name Forester_lsp)
+ (public_name forester.lsp)
+ (libraries bwd lsp eio eio_main asai forester.frontend cmdliner))

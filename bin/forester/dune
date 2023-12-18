@@ -1,9 +1,17 @@
-(executable
- (public_name forester)
- (name main)
+(executables
+ (public_names forester forester-lsp)
+ (package forester)
+ (names main Lsp)
  (flags (-g))
  (link_flags (-g))
- (libraries forester.frontend cmdliner dune-build-info eio_main asai))
+ (libraries
+  forester.frontend
+  forester.lsp
+  cmdliner
+  dune-build-info
+  eio_main
+  asai
+  ))
 
 (env
  (dev
