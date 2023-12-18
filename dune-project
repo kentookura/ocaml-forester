@@ -8,7 +8,7 @@
 
 (maintainers "Jonathan Sterling")
 
-(version 2.5.1)
+(version 9097265-dirty)
 
 (generate_opam_files true)
 
@@ -31,6 +31,7 @@
    (>= 2.1.0))
   (ocaml
    (>= 5.0.0))
+  lsp
   dune
   (xmlm
    (>= 1.4.0))

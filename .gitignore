@@ -3,6 +3,16 @@ build
 output
 latex
 
+/lsp-client
+/result
+/forester.nvim
+=======
+# nix output
+result
+
+# direnv cache
+.direnv
+
 # -*- mode: gitignore; -*-
 *.install
 *~
