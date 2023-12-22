@@ -32,6 +32,10 @@ let complete ~env input_dirs title =
   completions |> Seq.iter @@ fun (addr, title) ->
   Format.printf "%s, %s\n" addr title
 
+let query_title ~env input_dirs title =
+  let forest = Forest.plant_forest @@ Process.read_trees_in_dirs ~dev:true input_dirs in
+  Format.printf "Not implemented yet!\n" 
+
 let build_cmd ~env =
 
   let arg_input_dirs =
@@ -153,6 +157,30 @@ let complete_cmd ~env =
   let info = Cmd.info "complete" ~version ~doc in
   Cmd.v info Term.(const (complete ~env) $ arg_input_dirs $ arg_title)
 
+let query_title_cmd ~env =
+  let arg_addr =
+    let doc = "The addresss of the tree to query." in
+    Arg.value @@ Arg.opt Arg.string "" @@
+    Arg.info ["addr"] ~docv:"addr" ~doc
+  in
+  let arg_input_dirs =
+    Arg.non_empty @@ Arg.pos_all Arg.file [] @@
+    Arg.info [] ~docv:"INPUT_DIR"
+  in
+  let doc = "Get the title of a tree" in
+  let info = Cmd.info "title" ~version ~doc in
+  Cmd.v info Term.(const (query_title ~env) $ arg_input_dirs $ arg_addr)
+
+let query_cmd ~env =
+  let arg_input_dirs =
+    Arg.non_empty @@ Arg.pos_all Arg.file [] @@
+    Arg.info [] ~docv:"INPUT_DIR"
+  in
+  let doc = "Query your forest" in
+  let info = Cmd.info "query" ~version ~doc in
+  Cmd.group info [query_title_cmd ~env]
+
+
 let cmd ~env =
   let doc = "a tool for tending mathematical forests" in
   let man = [
@@ -164,7 +192,7 @@ let cmd ~env =
   in
 
   let info = Cmd.info "forester" ~version ~doc ~man in
-  Cmd.group info [build_cmd ~env; new_tree_cmd ~env; complete_cmd ~env]
+  Cmd.group info [build_cmd ~env; new_tree_cmd ~env; complete_cmd ~env; query_cmd ~env]
 
 let () =
   let fatal diagnostics =

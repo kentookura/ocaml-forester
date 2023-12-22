@@ -180,6 +180,8 @@ let complete ~forest prefix =
   |> M.filter (fun _ -> String.starts_with ~prefix)
   |> M.to_seq
 
+let get_title ~tree addr = "Hello"
+
 module E = Render_effect.Perform
 
 let render_tree ~cfg ~cwd ~bib_fmt doc =
