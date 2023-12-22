@@ -180,6 +180,28 @@ let complete ~forest prefix =
   |> M.filter (fun _ -> String.starts_with ~prefix)
   |> M.to_seq
 
+let extract_prefixes (strings : string Seq.t) : string list =
+  let extract_prefix (str : string) : string option =
+    match String.split_on_char '-' str with
+    | [] | [_] -> None 
+    | prefix :: _ -> Some prefix 
+  in
+  let prefixes =
+    strings
+    |> Seq.map extract_prefix 
+    |> Seq.filter_map (fun x -> x) 
+    |> List.of_seq 
+    |> List.sort_uniq String.compare (* Sort and remove duplicates *)
+  in
+  prefixes
+
+let prefixes ~forest =
+  forest.trees
+  |> M.to_seq
+  |> Seq.map fst
+  |> extract_prefixes
+
+
 let get_title ~tree addr = "Hello"
 
 module E = Render_effect.Perform

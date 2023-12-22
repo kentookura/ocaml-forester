@@ -32,8 +32,15 @@ let complete ~env input_dirs title =
   completions |> Seq.iter @@ fun (addr, title) ->
   Format.printf "%s, %s\n" addr title
 
+let query_prefixes ~env input_dirs =
+  let forest = Forest.plant_forest @@ Process.read_trees_in_dirs ~dev:true input_dirs in
+  let prefixes = Forest.prefixes ~forest in
+  prefixes |> List.iter @@ fun addr ->
+  Format.printf "%s\n" addr 
+
 let query_title ~env input_dirs title =
   let forest = Forest.plant_forest @@ Process.read_trees_in_dirs ~dev:true input_dirs in
+  let completions = Forest.complete ~forest title in
   Format.printf "Not implemented yet!\n" 
 
 let build_cmd ~env =
@@ -171,6 +178,15 @@ let query_title_cmd ~env =
   let info = Cmd.info "title" ~version ~doc in
   Cmd.v info Term.(const (query_title ~env) $ arg_input_dirs $ arg_addr)
 
+let query_prefixes_cmd ~env =
+  let arg_input_dirs =
+    Arg.non_empty @@ Arg.pos_all Arg.file [] @@
+    Arg.info [] ~docv:"INPUT_DIR"
+  in
+  let doc = "Get all prefixes of a forest" in
+  let info = Cmd.info "prefix" ~version ~doc in
+  Cmd.v info Term.(const (query_prefixes ~env) $ arg_input_dirs)
+
 let query_cmd ~env =
   let arg_input_dirs =
     Arg.non_empty @@ Arg.pos_all Arg.file [] @@
@@ -178,7 +194,7 @@ let query_cmd ~env =
   in
   let doc = "Query your forest" in
   let info = Cmd.info "query" ~version ~doc in
-  Cmd.group info [query_title_cmd ~env]
+  Cmd.group info [query_title_cmd ~env; query_prefixes_cmd ~env]
 
 
 let cmd ~env =
