@@ -17,15 +17,31 @@ let make_dir ~env dir =
 let make_dirs ~env =
   List.map (make_dir ~env)
 
-let build ~env input_dirs assets_dirs root base_url dev max_fibers ignore_tex_cache no_assets no_theme =
+let build ~env input_dirs assets_dirs root base_url dev max_fibers ignore_tex_cache no_assets no_theme watch =
   let assets_dirs = if no_assets then [] else make_dirs ~env assets_dirs in
   let cfg = Forest.{env; root; base_url; assets_dirs; max_fibers; ignore_tex_cache; no_assets; no_theme} in
-  let forest =
-    Forest.plant_forest @@
-    Process.read_trees_in_dirs ~dev @@
-    make_dirs ~env input_dirs
-  in
-  Forest.render_trees ~cfg ~forest
+  if watch then 
+    input_dirs |> List.iter begin fun target ->
+      let 
+        watcher = Luv.FS_event.init () |> Result.get_ok 
+      in
+      Luv.FS_event.start ~recursive:true watcher target begin function
+        | Error e -> ignore (Luv.FS_event.stop watcher);
+          Luv.Handle.close watcher ignore 
+        | Ok (file, events) ->
+            if List.mem `RENAME events then prerr_string "renamed ";
+            if List.mem `CHANGE events then prerr_string "changed ";
+            prerr_endline file;
+    end;
+    ignore (Luv.Loop.run () : bool);
+  end
+  else
+    let forest =
+      Forest.plant_forest @@
+      Process.read_trees_in_dirs ~dev @@
+      make_dirs ~env input_dirs
+    in
+    Forest.render_trees ~cfg ~forest
 
 let new_tree ~env input_dirs dest_dir prefix template random =
   let cfg = Forest.{env; root = None; base_url = None; assets_dirs = []; max_fibers = 20; ignore_tex_cache = true; no_assets = true; no_theme = true;} in
@@ -168,6 +184,11 @@ let build_cmd ~env =
     Arg.value @@ Arg.flag @@ Arg.info ["no-theme"] ~doc
   in
 
+  let arg_watch =
+    let doc = "watch filesystem and rebuild on change" in
+    Arg.value @@ Arg.flag @@ Arg.info ["watch"] ~doc
+  in
+
   let doc = "Build the forest" in
   let man = [
     `S Manpage.s_description;
@@ -186,7 +207,8 @@ let build_cmd ~env =
       $ arg_max_fibers
       $ arg_ignore_tex_cache
       $ arg_no_assets
-      $ arg_no_theme)
+      $ arg_no_theme
+      $ arg_watch)
 
 let new_tree_cmd ~env =
   let arg_prefix =
