@@ -21,20 +21,63 @@ let build ~env input_dirs assets_dirs root base_url dev max_fibers ignore_tex_ca
   let assets_dirs = if no_assets then [] else make_dirs ~env assets_dirs in
   let cfg = Forest.{env; root; base_url; assets_dirs; max_fibers; ignore_tex_cache; no_assets; no_theme} in
   if watch then 
+
+    let () = Lwt_engine.set (new Watcher.engine) in
+
+    let websockets = Hashtbl.create 256 in
+    
+    let last_key = ref 0 in
+    
+    let add websocket =
+      incr last_key;
+      let key = !last_key in
+      Hashtbl.replace websockets key websocket;
+      key
+    in
+    
+    let remove key =
+      Hashtbl.remove websockets key
+    in
+
+    let watcher = Luv.FS_event.init () |> Result.get_ok in
+
+    let () = 
     input_dirs |> List.iter begin fun target ->
-      let 
-        watcher = Luv.FS_event.init () |> Result.get_ok 
-      in
       Luv.FS_event.start ~recursive:true watcher target begin function
         | Error e -> ignore (Luv.FS_event.stop watcher);
           Luv.Handle.close watcher ignore 
         | Ok (file, events) ->
-            if List.mem `RENAME events then prerr_string "renamed ";
-            if List.mem `CHANGE events then prerr_string "changed ";
+            (* if List.mem `RENAME events then prerr_string "renamed "; *)
+            (* if List.mem `CHANGE events then prerr_string "changed "; *)
+            websockets |> Hashtbl.iter (fun key websocket ->
+              Lwt.async (fun () -> 
+                Lwt.catch 
+                  (fun () -> 
+                    Dream.log "change detected";
+                    Dream.send websocket "reload")
+                  (fun _ -> remove key; Lwt.return_unit)));
+            (* Dream.log "change detected"; *)
+            (* Dream.send websocket "reload"; *)
             prerr_endline file;
-    end;
-    ignore (Luv.Loop.run () : bool);
-  end
+      end
+    end
+    in
+
+    Lwt_main.run @@
+    Dream.serve @@
+    Dream.logger @@
+    Dream.router [
+      Dream.get "/reload" (fun _ -> 
+        Dream.websocket (fun socket -> 
+          let key = add socket in 
+          Lwt.bind
+            (Dream.receive socket) (fun _ ->
+            remove key;
+            Dream.close_websocket socket)));
+      Dream.get "**" (Dream.static "output");
+    ];
+
+
   else
     let forest =
       Forest.plant_forest @@
@@ -306,6 +349,14 @@ let query_cmd ~env =
   let info = Cmd.info "query" ~version ~doc in
   Cmd.group info [query_prefixes_cmd ~env; query_taxon_cmd ~env; query_tag_cmd ~env; query_all_cmd ~env]
 
+(*
+let preview ~env input_dirs assets_dirs root base_url dev max_fibers ignore_tex_cache no_theme watch = ()
+
+let preview_cmd ~env = 
+  let doc = "Start an HTTP server to preview your forest" in
+  let info = Cmd.info "preview" ~version ~doc in
+  Cmd.group info [preview ~env]
+*)
 
 let cmd ~env =
   let doc = "a tool for tending mathematical forests" in

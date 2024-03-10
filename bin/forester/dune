@@ -3,7 +3,7 @@
  (name main)
  (flags (-g))
  (link_flags (-g))
- (libraries forester.frontend cmdliner dune-build-info eio_main asai yojson luv))
+ (libraries forester.frontend cmdliner dune-build-info eio_main asai yojson luv dream lwt.unix))
 
 (env
  (dev

@@ -24,6 +24,7 @@ depends: [
   "algaeff" {>= "2.0.0"}
   "yojson" {>= "2.1.2"}
   "luv"
+  "dream"
   "odoc" {with-doc}
 ]
 build: [
