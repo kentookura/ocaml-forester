@@ -298,6 +298,43 @@ let cmd ~env =
   let info = Cmd.info "forester" ~version ~doc ~man in
   Cmd.group info [build_cmd ~env; new_tree_cmd ~env; complete_cmd ~env; query_cmd ~env]
 
+let load_config env : Forest.config option= 
+  let ( / )  = Eio.Path.( / ) in
+  let open Toml.Lenses in 
+  Eio.Path.load (Eio.Stdenv.fs env / "forest.toml") 
+  |> Toml.Parser.from_string
+  |> fun res -> match res with
+  | `Ok tbl -> 
+    let assets_dirs = 
+      match 
+        get tbl (key "forest" |-- table |-- key "assets_dirs" |-- array |-- strings) 
+      with
+      | Some dirs -> make_dirs ~env dirs 
+      | None -> []
+    in
+    let base_url = get tbl (key "forest" |-- table |-- key "base_url" |-- string) in 
+    let root = get tbl (key "forest" |-- table |-- key "root" |-- string) in 
+    Some Forest.{ 
+      env; 
+      assets_dirs;
+      root;
+      base_url;
+      ignore_tex_cache = false;
+      no_assets = false;
+      no_theme = false;
+      max_fibers = 20;
+    }
+
+  | `Error (_desc, { source; line; column; position }) -> 
+    let 
+      loc = 
+        let source = `File source in
+        let b : Range.position = { source; offset = position; start_of_line = column; line_num = line} in 
+        let e : Range.position = { source; offset = position; start_of_line = column ; line_num = line} in 
+      Range.make (b, e)
+    in 
+    Reporter.fatalf ~loc Configuration_error "uh oh"
+
 let () =
   let fatal diagnostics =
     Tty.display diagnostics;
@@ -306,4 +343,6 @@ let () =
   Printexc.record_backtrace true;
   Eio_main.run @@ fun env ->
   Core.Reporter.run ~emit:Tty.display ~fatal @@ fun () ->
-  exit @@ Cmd.eval ~catch:false @@ cmd ~env
+  let _ = load_config env in
+  ()
+  (* exit @@ Cmd.eval ~catch:false @@ cmd ~env *)
