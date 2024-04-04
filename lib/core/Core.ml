@@ -3,6 +3,7 @@ include Base
 module Syn = Syn
 module Sem = Sem
 module Code = Code
+module Repr = Repr
 
 module Resolver = Resolver
 module Expand = Expand

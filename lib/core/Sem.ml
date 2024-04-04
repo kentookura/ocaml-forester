@@ -8,17 +8,22 @@ type node =
   | Transclude of transclusion_opts * addr
   | Subtree of transclusion_opts * tree
   | Query of transclusion_opts * t Query.t
-  | Link of {dest : string; title : t option; modifier : [`Sentence_case] option}
+  | Link of link
   | Xml_tag of string * (string * t) list * t
   | Unresolved of string
   | Math of math_mode * t
-  | Embed_tex of {preamble : t; source : t}
-  | Img of {path : string}
+  | Embed_tex of embed_tex
+  | Img of img
   | If_tex of t * t
   | Prim of Prim.t * t
   | Object of Symbol.t
-  | Ref of {addr : string}
+  | Ref of ref_cfg
 [@@deriving show]
+
+and link = {dest : string; label : t option; modifier : [`Sentence_case] option}
+and embed_tex = {preamble : t; source : t}
+and img = {path : string}
+and ref_cfg = {address : string}
 
 and transclusion_opts =
   {toc : bool;
@@ -115,9 +120,9 @@ let string_of_nodes =
   and render_node located =
     match Range.(located.value) with
     | Text s -> Some s
-    | Link {title = Some title; _} -> Some (render title)
-    | Link {title = None; dest; _} -> Some dest
-    | Ref {addr} -> Some addr
+    | Link {label = Some label; _} -> Some (render label)
+    | Link {label = None; dest; _} -> Some dest
+    | Ref {address} -> Some address
     | Xml_tag (_, _, bdy) | Math (_, bdy) -> Some (render bdy)
     | Embed_tex {source; _} -> Some (render source)
     | If_tex (_, x) -> Some (render x)

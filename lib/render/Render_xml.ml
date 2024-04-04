@@ -32,23 +32,23 @@ let rec render_node ~cfg : Sem.node Range.located -> printer =
       TP.contents @@
       Render_verbatim.render ~cfg:{tex = false} bdy
     ]
-  | Sem.Link {title; dest; modifier} ->
+  | Sem.Link {label; dest; modifier} ->
     begin
       match E.get_doc dest with
       | Some _ ->
-        render_internal_link ~cfg ~title ~modifier ~addr:dest
+        render_internal_link ~cfg ~label ~modifier ~addr:dest
       | None ->
-        render_external_link ~cfg ~title ~modifier ~url:dest
+        render_external_link ~cfg ~label ~modifier ~url:dest
     end
-  | Sem.Ref {addr} ->
+  | Sem.Ref {address} ->
     begin
-      match E.get_doc addr with
+      match E.get_doc address with
       | None ->
-        Reporter.fatalf ?loc:located.loc Tree_not_found "could not find tree at address `%s` for reference" addr
+        Reporter.fatalf ?loc:located.loc Tree_not_found "could not find tree at address `%s` for reference" address
       | Some tree ->
-        let url = E.route addr in
+        let url = E.route address in
         let attrs =
-          [Printer.attr "addr" addr;
+          [Printer.attr "addr" address;
            Printer.attr "href" url] @
           (match tree.fm.taxon with
            | None -> []
@@ -148,14 +148,14 @@ and render_transclusion ~cfg ~opts tree =
   let cfg = {cfg with top = false; addr = tree.fm.addr} in
   render_tree ~cfg ~opts tree
 
-and render_internal_link ~cfg ~title ~modifier ~addr =
+and render_internal_link ~cfg ~label ~modifier ~addr =
   let url = E.route addr in
   let doc = E.get_doc addr in
   let doc_title =
     Option.bind doc @@ fun d ->
     d.fm.title |> Option.map @@ Render_util.expand_title_with_parents d
   in
-  let title = Option.fold title ~none:doc_title ~some:Option.some in
+  let title = Option.fold label ~none:doc_title ~some:Option.some in
   let target_title_attr =
     match doc_title with
     | None -> []
@@ -173,8 +173,8 @@ and render_internal_link ~cfg ~title ~modifier ~addr =
     ([Printer.attr "href" url; Printer.attr "type" "local"; Printer.attr "addr" addr] @ target_title_attr)
     [render ~cfg title]
 
-and render_external_link ~cfg ~title ~modifier ~url =
-  let title = Option.map (Sem.apply_modifier modifier) title in
+and render_external_link ~cfg ~label ~modifier ~url =
+  let title = Option.map (Sem.apply_modifier modifier) label in
   let title = Option.value ~default:[Range.locate_opt None @@ Sem.Text url] title in
   Printer.tag "link"
     [Printer.attr "href" url; Printer.attr "type" "external"]

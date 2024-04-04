@@ -1,11 +1,10 @@
 open Base
-open Prelude
 
 type node =
   | Text of string
   | Group of delim * t
   | Math of math_mode * t
-  | Link of {dest : t; title : t option}
+  | Link of {dest : t; label : t option}
   | Transclude of addr
   | Subtree of addr option * tree
   | Query of t Query.t

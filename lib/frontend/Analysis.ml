@@ -55,11 +55,11 @@ let rec analyze_nodes ~analysis scope : Sem.t -> unit =
       | Some addr ->
         Gph.add_edge analysis.transclusion_graph addr scope
     end
-  | Sem.Link {title; dest; _} ->
-    Option.iter (analyze_nodes ~analysis scope) title;
+  | Sem.Link {label; dest; _} ->
+    Option.iter (analyze_nodes ~analysis scope) label;
     Gph.add_edge analysis.link_graph dest scope
-  | Sem.Ref {addr} ->
-    Gph.add_edge analysis.link_graph addr scope
+  | Sem.Ref {address} ->
+    Gph.add_edge analysis.link_graph address scope
   | Sem.Xml_tag (_, attrs, xs) ->
     begin
       attrs |> List.iter @@ fun (k, v) ->

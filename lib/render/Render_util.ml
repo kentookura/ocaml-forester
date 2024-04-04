@@ -14,6 +14,6 @@ let rec expand_title_with_parents (tree : Sem.tree) title =
       let parent_title = parent.fm.title |> Option.map @@ expand_title_with_parents parent in
       let parent_link =
         [Range.locate_opt None @@
-         Sem.Link {dest = parent_addr; modifier = Some `Sentence_case; title = parent_title}]
+         Sem.Link {dest = parent_addr; modifier = Some `Sentence_case; label = parent_title}]
       in
       parent_link @ chevron @ title

@@ -62,15 +62,15 @@ let rec expand : Code.t -> Syn.t =
     end;
     expand rest
 
-  | {value = Group (Squares, title); loc = loc1} :: {value = Group (Parens, dest); loc = loc2} :: rest ->
+  | {value = Group (Squares, label); loc = loc1} :: {value = Group (Parens, dest); loc = loc2} :: rest ->
     let dest = expand dest in
-    let title = Option.some @@ expand title in
-    let link = Syn.Link {dest; title} in
+    let label = Option.some @@ expand label in
+    let link = Syn.Link {dest; label} in
     {value = link; loc = loc1} :: expand rest
 
   | {value = Group (Squares, [{value = Group (Squares, dest); _}]); loc} :: rest ->
     let dest = expand dest in
-    {value = Syn.Link {dest; title = None}; loc} :: expand rest
+    {value = Syn.Link {dest; label = None}; loc} :: expand rest
 
   | {value = Group (d, xs); loc} :: rest ->
     {value = Syn.Group (d, expand xs); loc} :: expand rest
