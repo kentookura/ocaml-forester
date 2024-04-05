@@ -1,23 +1,6 @@
 open Lwt.Syntax
 open Repr
 
-(* type foo = { v : string } *)
-(**)
-(* module Abstract : Irmin.Contents.S with type t = foo = struct *)
-(*   open Repr *)
-(*   type t = foo *)
-(*   let t : foo ty = *)
-(*     let a1 _ = assert false in *)
-(*     let a2 _ _ = assert false in *)
-(*     abstract ~pp:a2 ~of_string:a1 ~json:(a2, a1) *)
-(*       ~bin:(a2, a2, Size.custom_dynamic ()) *)
-(*       ~equal:a2 ~compare:a2 *)
-(*       ~short_hash:(fun ?seed:_ -> a1) *)
-(*       ~pre_hash:a2 () *)
-(**)
-(*   let merge = Irmin.Merge.(option (idempotent t)) *)
-(* end *)
-
 module Store = Irmin_git_unix.FS.KV (Core.Rep.Tree) 
 module Info = Irmin_unix.Info(Store.Info)
 

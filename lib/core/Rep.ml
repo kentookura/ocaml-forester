@@ -80,16 +80,9 @@ let range : Range.t ty =
   in
   let short_hash ?seed a = 0 in
   let pre_hash _ _ = () in
-  (* abstract ~pp ~of_string ~json:(encode, decode) *)
-  (*   ~bin:(encode_bin, decode_bin, size_of) *)
-  (*   ~equal ~compare ~short_hash ~pre_hash () *)
-  let a1 _ = assert false in
-  let a2 _ _ = assert false in
-  abstract ~pp:a2 ~of_string:a1 ~json:(a2, a1)
-    ~bin:(a2, a2, Size.custom_dynamic ())
-    ~equal:a2 ~compare:a2
-    ~short_hash:(fun ?seed:_ -> a1)
-    ~pre_hash:a2 ()
+  abstract ~pp ~of_string ~json:(encode, decode)
+    ~bin:(encode_bin, decode_bin, size_of)
+    ~equal ~compare ~short_hash ~pre_hash ()
 
 
 let prim : Prim.t ty=
