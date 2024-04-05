@@ -80,9 +80,17 @@ let range : Range.t ty =
   in
   let short_hash ?seed a = 0 in
   let pre_hash _ _ = () in
-  abstract ~pp ~of_string ~json:(encode, decode)
-    ~bin:(encode_bin, decode_bin, size_of)
-    ~equal ~compare ~short_hash ~pre_hash ()
+  (* abstract ~pp ~of_string ~json:(encode, decode) *)
+  (*   ~bin:(encode_bin, decode_bin, size_of) *)
+  (*   ~equal ~compare ~short_hash ~pre_hash () *)
+  let a1 _ = assert false in
+  let a2 _ _ = assert false in
+  abstract ~pp:a2 ~of_string:a1 ~json:(a2, a1)
+    ~bin:(a2, a2, Size.custom_dynamic ())
+    ~equal:a2 ~compare:a2
+    ~short_hash:(fun ?seed:_ -> a1)
+    ~pre_hash:a2 ()
+
 
 let prim : Prim.t ty=
   let open Prim in
@@ -100,20 +108,12 @@ let prim : Prim.t ty=
     ]
 
 let date : Prelude.Date.t ty =
-  let pp formatter a = () in
-  let of_string s = Ok (Prelude.Date.parse s) in
-  let encode _ _ = () in
-  let decode _ = Ok (Prelude.Date.parse "todo") in
-  let encode_bin : _ encode_bin = fun _ _ -> () in
-  let decode_bin _ _ = Prelude.Date.parse "todo" in
-  let size_of : _ size_of = Size.custom_dynamic () in
-  let equal _ _ = false in
-  let compare _ _ = 0 in
-  let short_hash ?seed a = 0 in
-  let pre_hash _ _ = () in
-  abstract ~pp ~of_string ~json:(encode, decode)
-    ~bin:(encode_bin, decode_bin, size_of)
-    ~equal ~compare ~short_hash ~pre_hash ()
+  let open Prelude.Date in 
+  record "date" (fun yyyy mm dd -> {yyyy; mm; dd})
+  |+ field "yyyy" int (fun t -> t.yyyy)
+  |+ field "mm" (option int) (fun t -> t.mm)
+  |+ field "dd" (option int) (fun t -> t.dd)
+  |> sealr
 
 module Tree : Irmin.Contents.S with type t = Sem.tree = struct
   type t = Sem.tree

@@ -39,21 +39,3 @@ let contribute t path data =
     let* tree = Forest_store.Tree.add tree ["d"; "e"; "f"] Sem.empty_tree in
     Lwt.return_some tree)
 
-module Forest_mem_store = Irmin_git_unix.Mem.KV (Irmin.Contents.String)
-module Sync = Irmin.Sync.Make(Forest_mem_store)
-
-let test () =
-  let* remote = Forest_mem_store.remote "git://git.sr.ht/~jonsterling/public-trees" in
-  let* repo = Forest_mem_store.Repo.v config in
-  let* t = Forest_mem_store.main repo in
-  let* _ = Sync.pull_exn t remote `Set in
-  let+ forester_info = Forest_mem_store.get t [ "jms-005P.tree" ] in
-  Printf.printf "%s\n%!" forester_info
-
-let main () = () 
-  (* let* t = main_branch config in *)
-  (* let* () = Forest_store.set_exn t ["a"; "b"; "c";] Sem.empty_tree ~info:(info "my first commit") in *)
-  (* let+ s = Forest_store.get t ["a"; "b"; "c";] in  *)
-  (* assert (s = Sem.empty_tree) *)
-
-(* let () = Lwt_main.run (test ()) *)
