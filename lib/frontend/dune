@@ -18,6 +18,7 @@
   eio_main
   str
   yuujinchou
+  irmin
   irmin-git.unix))
 
 (env

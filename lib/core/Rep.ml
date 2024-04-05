@@ -27,7 +27,19 @@ let position : Range.position ty =
 
 let range : Range.t ty =
   let open Range in
-  (* required stuff for serializing abstract types *)
+  let compare_pos p q = 
+    p.source = q.source && 
+    p.offset = q.offset && 
+    p.start_of_line = q.start_of_line && 
+    p.line_num = q.line_num
+  in
+
+  (* Seems like even the official tests do not fully implement some of these...
+     https://github.com/mirage/repr/blob/ffb05ffb1f03300fcd973ceb07643aff616495f3/test/repr/main.ml#L560 
+  *)
+
+  (* A possible approach is to just pick a json representation and just send everything thru that? *)
+
   let pp formatter a = () in
   let b =
     { source = `File "todo"; offset = 0; start_of_line = 0; line_num = 0 }
@@ -35,15 +47,37 @@ let range : Range.t ty =
   let e =
     { source = `File "todo"; offset = 0; start_of_line = 0; line_num = 0 }
   in
-  (* We need to choose a string representation of ranges. Should we coordinate with the Asai team or just go for it? *)
+  (* We need to choose a string representation of ranges. *)
   let of_string _ = Ok (Range.make (b, e)) in
-  let encode _ _ = () in
+  let encode encoder range = () in
   let decode _ = Ok (Range.make (b, e)) in
   let encode_bin : _ encode_bin = fun _ _ -> () in
   let decode_bin _ _ = Range.make (b, e) in
-  let size_of : _ size_of = Size.custom_dynamic () in
-  let equal _ _ = false in
-  let compare _ _ = 0 in
+  (* I think as long as this is not done properly, running any of this code results in a stack overflow. 
+     At least running Store.main results in stack overflow and I haven't taken the time to track it down
+     and that is my best guess.
+  *)
+  let size_of : _ size_of = Size.custom_dynamic ~of_value:(fun a -> 64) ~of_encoding:(fun a _ -> 64) () in
+  let equal r1 r2 = 
+    match Range.view r1, Range.view r2 with
+    | `End_of_file p, `End_of_file q -> compare_pos p q
+    | `Range (p1, p2), `Range (q1, q2) ->
+        compare_pos p1 q1 && compare_pos p2 q2
+    | _ -> false
+  in
+  let compare r1 r2 = 
+    if equal r1 r2 then 0 else
+    (* TODO this is tedious and probably not necessary*)
+    match Range.view r1, Range.view r2 with
+    | `End_of_file p, `End_of_file q -> 
+        (if p.source = q.source then match p.source, q.source with
+          | `String s1, `String s2 -> String.compare s1.content s2.content
+          | `File s1, `File s2 -> String.compare s1 s2
+          | _ -> -1
+        else -1)
+    | `Range (p1, p2), `Range (q1, q2) -> -1
+    | _ -> -1
+  in
   let short_hash ?seed a = 0 in
   let pre_hash _ _ = () in
   abstract ~pp ~of_string ~json:(encode, decode)

@@ -14,6 +14,7 @@
         devPackagesQuery = {
           ocaml-base-compiler = "5.1.1";
           ocaml-lsp-server = "*";
+          utop = "*";
         };
         query = devPackagesQuery // { };
         scope =
