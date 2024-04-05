@@ -1,6 +1,6 @@
-open Irmin.Type
+open Repr
 
-let string_source : Range.string_source ty =
+let string_source : Range.string_source t =
   let open Range in
   record "string_source" (fun title content -> { title; content })
   |+ field "title" (option string) (fun s -> s.title)
@@ -41,8 +41,7 @@ let range : Range.t ty =
   let decode _ = Ok (Range.make (b, e)) in
   let encode_bin : _ encode_bin = fun _ _ -> () in
   let decode_bin _ _ = Range.make (b, e) in
-  let unimplemented_size_of = failwith "todo" in
-  let size_of : _ size_of = unimplemented_size_of in
+  let size_of : _ size_of = Size.custom_dynamic () in
   let equal _ _ = false in
   let compare _ _ = 0 in
   let short_hash ?seed a = 0 in
@@ -73,8 +72,7 @@ let date : Prelude.Date.t ty =
   let decode _ = Ok (Prelude.Date.parse "todo") in
   let encode_bin : _ encode_bin = fun _ _ -> () in
   let decode_bin _ _ = Prelude.Date.parse "todo" in
-  let unimplemented_size_of = failwith "todo" in
-  let size_of : _ size_of = unimplemented_size_of in
+  let size_of : _ size_of = Size.custom_dynamic () in
   let equal _ _ = false in
   let compare _ _ = 0 in
   let short_hash ?seed a = 0 in

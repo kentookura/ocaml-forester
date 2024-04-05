@@ -206,3 +206,7 @@ let empty_frontmatter =
    designated_parent = None;
    source_path = None;
    number = None}
+
+let empty_tree = 
+  {fm = empty_frontmatter; body = []}
+

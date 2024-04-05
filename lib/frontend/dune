@@ -17,7 +17,8 @@
   xmlm
   eio_main
   str
-  yuujinchou))
+  yuujinchou
+  irmin-git.unix))
 
 (env
  (dev
