@@ -1,5 +1,19 @@
 open Repr
 
+(*  NOTE:
+    For ease of implementation, I've made Date.t` a concrete type. However, I
+    still need to implement a representation for Asai.Ranges which is abstract.
+    For the irmin-git backend , functions we need are pp, of_string and equal.
+    I've worked around the need for a full of_string implementation (parser),
+    since in `located_sem_node` I am simply returning `None` for the value of
+    `loc`. This means even though we can serialize ranges, we can't retrieve
+    them. This is fine for now, since we don't need that info for rendering,
+    which is our primary use case.
+*)
+
+
+(** Reps of Asai types *)
+
 let string_source : Range.string_source t =
   let open Range in
   record "string_source" (fun title content -> { title; content })
@@ -11,8 +25,8 @@ let source_repr : Range.source ty =
   let open Range in
   variant "source" (fun file string -> function
     | `File s -> file s | `String s -> string s)
-  |~ case1 "`File" string (fun s -> `File s)
-  |~ case1 "`String" string_source (fun s -> `String s)
+  |~ case1 "File" string (fun s -> `File s)
+  |~ case1 "String" string_source (fun s -> `String s)
   |> sealv
 
 let position : Range.position ty =
@@ -27,6 +41,33 @@ let position : Range.position ty =
 
 let range : Range.t ty =
   let open Range in
+  let pp = Range.dump in
+  let pos =
+    { source = `File "todo"; offset = 0; start_of_line = 0; line_num = 0 }
+  in
+
+  let of_string str = 
+  (*  HACK: Should parse this kind of string (produced by Range.dump):
+
+    Range
+      ({source=(`File "todo"); offset=0; start_of_line=0; line_num=0},
+       {source=(`File "todo"); offset=0; start_of_line=0; line_num=0})
+  *)
+    Ok (Range.make (pos, pos))
+  in
+
+  let r = (Range.make (pos, pos)) in
+  let encode encoder range = () in
+  let decode _ = Ok r in
+  let encode_bin : _ encode_bin = fun _ _ -> () in
+  let decode_bin _ _ = r in
+  let size_of : _ size_of = 
+    (* NOTE: Named args of_value and of_encoding are optional. 
+       Precompute the size that will be used by `encode_bin`. `of_encoding`
+       unused nowadays
+    *)
+    Size.custom_dynamic () in
+
   let compare_pos p q = 
     p.source = q.source && 
     p.offset = q.offset && 
@@ -34,35 +75,6 @@ let range : Range.t ty =
     p.line_num = q.line_num
   in
 
-  (* Seems like even the official tests do not fully implement some of these...
-     https://github.com/mirage/repr/blob/ffb05ffb1f03300fcd973ceb07643aff616495f3/test/repr/main.ml#L560 
-  *)
-
-  (* A possible approach is to just pick a json representation and just send everything thru that? *)
-
-  let pp = Range.dump in
-  let b =
-    { source = `File "todo"; offset = 0; start_of_line = 0; line_num = 0 }
-  in
-  let e =
-    { source = `File "todo"; offset = 0; start_of_line = 0; line_num = 0 }
-  in
-  let eof = Range.eof b in
-  let r = (Range.make (b, e)) in
-  (* We need to choose a string representation of ranges. *)
-  let of_string str = Ok (Range.make (b,e))
-    (* try Scanf.sscanf str "@[<2>Range@ %a@]" (fun str -> Ok {v = str}) *)
-    (* with _ -> () *)
-  in
-  let encode encoder range = () in
-  let decode _ = Ok (Range.make (b, e)) in
-  let encode_bin : _ encode_bin = fun _ _ -> () in
-  let decode_bin _ _ = Range.make (b, e) in
-  (* I think as long as this is not done properly, running any of this code results in a stack overflow. 
-     At least running Store.main results in stack overflow and I haven't taken the time to track it down
-     and that is my best guess.
-  *)
-  let size_of : _ size_of = Size.custom_dynamic ~of_value:(fun a -> 64) ~of_encoding:(fun a _ -> 64) () in
   let equal r1 r2 = 
     match Range.view r1, Range.view r2 with
     | `End_of_file p, `End_of_file q -> compare_pos p q
@@ -72,7 +84,8 @@ let range : Range.t ty =
   in
   let compare r1 r2 = 
     if equal r1 r2 then 0 else
-    (* TODO this is tedious and probably not necessary*)
+    (*  FIXME: Is this used by the git-backend? If not, scratch it.
+    *)
     match Range.view r1, Range.view r2 with
     | `End_of_file p, `End_of_file q -> 
         (if p.source = q.source then match p.source, q.source with
@@ -209,9 +222,9 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
     |+ field "address" string (fun t -> t.address)
     |> sealr
 
-  and symbol : Symbol.t ty = let open Symbol in
+  and symbol : Symbol.t ty = 
+    let open Symbol in
     pair (list string) int
-
 
   and link (t : Sem.t ty) : Sem.link ty =
     let open Sem in
@@ -242,13 +255,6 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
     |~ case1 "Not" query (fun x -> Not x)
     |~ case0 "True" True |> sealv
 
-  and located_sem_node (t : Sem.t ty) (tree : Sem.tree ty) : Sem.node Range.located ty =
-    let open Asai in
-    let open Range in
-    record "located_sem_node" (fun loc value -> { loc; value })
-    |+ field "loc" (option range) (fun t -> None)
-    |+ field "value" (sem_node t tree) (fun t -> t.value)
-    |> sealr
 
   and tranclusion_opts (t : Sem.t ty) =
     let open Sem in
@@ -282,7 +288,7 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
     |+ field "numbered" bool (fun t -> t.numbered)
     |> sealr
 
-  and frontmatter (t : Sem.t ty) =
+  let frontmatter (t : Sem.t ty) =
     let open Sem in
     record "frontmatter"
       (fun
@@ -319,14 +325,20 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
     |+ field "contributors" (list string) (fun t -> t.contributors)
     |+ field "dates" (list date) (fun t -> t.dates)
     |+ field "addr" (option string) (fun t -> t.addr)
-    |+ field "metas"
-         (list (pair string t))
-         (fun t -> t.metas)
+    |+ field "metas" (list (pair string t)) (fun t -> t.metas)
     |+ field "tags" (list string) (fun t -> t.tags)
     |+ field "physical_parent" (option string) (fun t -> t.physical_parent)
     |+ field "designated_parent" (option string) (fun t -> t.designated_parent)
     |+ field "source_path" (option string) (fun t -> t.source_path)
     |+ field "number" (option string) (fun t -> t.number)
+    |> sealr
+
+  let located_sem_node (t : Sem.t ty) (tree : Sem.tree ty) : Sem.node Range.located ty =
+    let open Asai in
+    let open Range in
+    record "located_sem_node" (fun loc value -> { loc; value })
+    |+ field "loc" (option range) (fun t -> None)
+    |+ field "value" (sem_node t tree) (fun t -> t.value)
     |> sealr
 
   let tree  : Sem.tree ty =
