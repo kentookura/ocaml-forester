@@ -155,7 +155,7 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
         if_tex
         prim
         object_
-        ref
+        ref_
       -> function
       | Text s -> text s
       | Transclude (x, y) -> transclude (x, y)
@@ -170,7 +170,7 @@ module Tree : Irmin.Contents.S with type t = Sem.tree = struct
       | If_tex (x, y) -> if_tex (x, y)
       | Prim (x, y) -> prim (x, y)
       | Object x -> object_ x
-      | Ref x -> ref x)
+      | Ref x -> ref_ x)
     |~ case1 "Text" string (fun s -> Text s)
     |~ case1 "Transclude"
          (pair (tranclusion_opts t) string)
